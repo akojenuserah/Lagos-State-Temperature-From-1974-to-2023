@@ -1,0 +1,43 @@
+var terraclimate = ee.ImageCollection("IDAHO_EPSCOR/TERRACLIMATE");
+
+var geometry = table.filter(ee.Filter.eq("state_name", "Lagos"));
+Map.addLayer(geometry, {"color":"red"}, "Geometry");
+Map.centerObject(geometry, 10);
+
+
+//Finding the image resolution
+
+var image = ee.Image(terraclimate.first());
+print(image.projection().nominalScale());
+
+
+
+var tmax = terraclimate.select(['tmmx'])
+var tmaxScaled = tmax.map(function(image) {
+  return image.multiply(0.1)
+    .copyProperties(image,['system:time_start']);
+});
+  
+print('Number of images for tmaxScaled:',tmaxScaled.size());
+
+var terra = tmaxScaled.filter(ee.Filter.date('1974-01-01', '2024-04-01'))
+  .filter(ee.Filter.bounds(geometry));
+
+Map.addLayer(terra, imageVisParam, "Terra");
+print('Number of images for terra:', terra.size());
+
+var chart = ui.Chart.image.series({
+  imageCollection: terra.select(["tmmx"]), 
+  region: geometry, 
+  reducer: ee.Reducer.max(), 
+  scale: 4638}).setOptions({
+    linewidth: 1,
+    pointSize:2,
+    title: "Maximum Monthly Temperature Change From 1974 to 2023 In Lagos, Nigeria",
+  hAxis: {title: '', format: "YYYY-MMM"}, 
+  vAxis: {title: 'Temperature (C)'}, 
+  legend: {title: "temperature", position: 'True'}
+  });
+    
+print(chart); 
+  
